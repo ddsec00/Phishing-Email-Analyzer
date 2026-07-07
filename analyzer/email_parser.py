@@ -1,36 +1,61 @@
-"""
-email_parser.py
-
-This module is responsible for reading an email (.eml) file
-and converting it into a structured Python object.
-
-Every other analysis module will use the information
-produced here.
-"""
-
 from email import policy
 from email.parser import BytesParser
 
+
 class EmailParser:
     """
-    Reads an email file and extracts its contents.
+    Responsible only for reading an email file
+    and returning structured email data.
     """
 
     def __init__(self, file_path):
-        """
-        Save the location of the email file.
-        """
         self.file_path = file_path
+
     def load_email(self):
         """
-        Open the email file and convert it into
-        a Python email object.
+        Read the email file and return
+        a dictionary containing the
+        important information.
         """
 
         with open(self.file_path, "rb") as email_file:
-
-            email = BytesParser(
+            message = BytesParser(
                 policy=policy.default
             ).parse(email_file)
 
-        return email
+        body = ""
+
+        if message.is_multipart():
+
+            for part in message.walk():
+
+                content_type = part.get_content_type()
+
+                disposition = str(
+                    part.get("Content-Disposition")
+                )
+
+                if (
+                    content_type == "text/plain"
+                    and "attachment" not in disposition
+                ):
+                    body = part.get_content()
+                    break
+
+                elif (
+                    content_type == "text/html"
+                    and body == ""
+                ):
+                    body = part.get_content()
+
+        else:
+
+            body = message.get_content()
+
+        return {
+            "From": message["From"],
+            "To": message["To"],
+            "Subject": message["Subject"],
+            "Date": message["Date"],
+            "Body": body,
+        }

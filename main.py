@@ -37,5 +37,8 @@ def main():
     print("\nDATE:")
     print(email["Date"])
 
+    print("\nBODY:")
+    print(email["Body"])
+
 if __name__ == "__main__":
     main()

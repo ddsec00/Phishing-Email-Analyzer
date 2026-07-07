@@ -9,6 +9,7 @@ that make up the phishing email analyzer.
 from analyzer.url_extractor import URLExtractor
 from analyzer.email_parser import EmailParser
 from analyzer.url_analyzer import URLAnalyzer
+from analyzer.header_analyzer import HeaderAnalyzer
 
 def main():
     """
@@ -73,6 +74,21 @@ def main():
 
         else:
             print("No suspicious indicators found.")
+    header_analyzer = HeaderAnalyzer(email)
 
+    header_result = header_analyzer.analyze()
+
+
+    print("\nHEADER ANALYSIS")
+
+    print(
+        "Risk Score:",
+        header_result["score"]
+    )
+
+
+    for finding in header_result["findings"]:
+
+        print("-", finding)
 if __name__ == "__main__":
     main()

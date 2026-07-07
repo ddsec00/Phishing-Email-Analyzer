@@ -8,6 +8,7 @@ that make up the phishing email analyzer.
 """
 from analyzer.url_extractor import URLExtractor
 from analyzer.email_parser import EmailParser
+from analyzer.url_analyzer import URLAnalyzer
 
 def main():
     """
@@ -50,6 +51,28 @@ def main():
             print("-", url)
     else:
         print("No URLs found.")
+    analyzer = URLAnalyzer(urls)
+
+    results = analyzer.analyze()
+
+
+    print("\nURL ANALYSIS:")
+
+    for result in results:
+
+        print("\nURL:", result["url"])
+
+        print("Risk Score:", result["score"])
+
+        if result["findings"]:
+
+            print("Findings:")
+
+            for finding in result["findings"]:
+                print("-", finding)
+
+        else:
+            print("No suspicious indicators found.")
 
 if __name__ == "__main__":
     main()

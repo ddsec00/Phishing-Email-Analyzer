@@ -10,6 +10,7 @@ from analyzer.url_extractor import URLExtractor
 from analyzer.email_parser import EmailParser
 from analyzer.url_analyzer import URLAnalyzer
 from analyzer.header_analyzer import HeaderAnalyzer
+from analyzer.attachment_analyzer import AttachmentAnalyzer
 
 def main():
     """
@@ -90,5 +91,36 @@ def main():
     for finding in header_result["findings"]:
 
         print("-", finding)
+
+
+    attachment_analyzer = AttachmentAnalyzer(
+         email["message"]
+    )
+
+    attachment_result = attachment_analyzer.analyze()
+
+    print("\nATTACHMENT ANALYSIS")
+
+    print("Risk Score:", attachment_result["score"])
+
+    if attachment_result["attachments"]:
+
+        print("\nAttachments:")
+
+        for attachment in attachment_result["attachments"]:
+
+            print("-", attachment)
+
+    else:
+
+        print("No attachments found.")
+
+    if attachment_result["findings"]:
+
+        print("\nFindings:")
+
+        for finding in attachment_result["findings"]:
+
+          print("-", finding)
 if __name__ == "__main__":
     main()

@@ -53,6 +53,7 @@ class EmailParser:
             body = message.get_content()
 
         return {
+            "message": message,
             "From": message["From"],
             "To": message["To"],
             "Subject": message["Subject"],

@@ -11,116 +11,62 @@ from analyzer.email_parser import EmailParser
 from analyzer.url_analyzer import URLAnalyzer
 from analyzer.header_analyzer import HeaderAnalyzer
 from analyzer.attachment_analyzer import AttachmentAnalyzer
+from analyzer.risk_engine import RiskEngine
+from reports.report_generator import ReportGenerator
 
 def main():
     """
     Main application workflow.
     """
-
     print("=" * 60)
     print("Phishing Email Analyzer")
     print("=" * 60)
-
     print("\nLoading email...\n")
 
     parser = EmailParser("samples/sample_email.eml")
-
     email = parser.load_email()
     print("Email loaded successfully.\n")
 
-    print("FROM:")
-    print(email["From"])
+    print("Analyzing... Please wait.\n")
 
-    print("\nTO:")
-    print(email["To"])
-
-    print("\nSUBJECT:")
-    print(email["Subject"])
-
-    print("\nDATE:")
-    print(email["Date"])
-
-    print("\nBODY:")
-    print(email["Body"])
+    # 1. Parse URLs
     extractor = URLExtractor(email["Body"])
-
     urls = extractor.extract()
 
-    print("\nURLs Found:")
+    # 2. Analyze URLs
+    url_analyzer = URLAnalyzer(urls)
+    url_results = url_analyzer.analyze()
 
-    if urls:
-        for url in urls:
-            print("-", url)
-    else:
-        print("No URLs found.")
-    analyzer = URLAnalyzer(urls)
-
-    results = analyzer.analyze()
-
-
-    print("\nURL ANALYSIS:")
-
-    for result in results:
-
-        print("\nURL:", result["url"])
-
-        print("Risk Score:", result["score"])
-
-        if result["findings"]:
-
-            print("Findings:")
-
-            for finding in result["findings"]:
-                print("-", finding)
-
-        else:
-            print("No suspicious indicators found.")
+    # 3. Analyze Headers
     header_analyzer = HeaderAnalyzer(email)
-
     header_result = header_analyzer.analyze()
 
-
-    print("\nHEADER ANALYSIS")
-
-    print(
-        "Risk Score:",
-        header_result["score"]
-    )
-
-
-    for finding in header_result["findings"]:
-
-        print("-", finding)
-
-
-    attachment_analyzer = AttachmentAnalyzer(
-         email["message"]
-    )
-
+    # 4. Analyze Attachments
+    attachment_analyzer = AttachmentAnalyzer(email["message"])
     attachment_result = attachment_analyzer.analyze()
 
-    print("\nATTACHMENT ANALYSIS")
+    # 5. Evaluate Overall Risk
+    risk_engine = RiskEngine(url_results, header_result, attachment_result)
+    risk_summary = risk_engine.calculate_risk()
 
-    print("Risk Score:", attachment_result["score"])
+    # 6. Generate Report
+    email_info = {
+        "From": email.get("From"),
+        "Subject": email.get("Subject"),
+        "Date": email.get("Date")
+    }
+    
+    report_generator = ReportGenerator(
+        email_info, 
+        url_results, 
+        header_result, 
+        attachment_result, 
+        risk_summary
+    )
+    final_report = report_generator.generate()
 
-    if attachment_result["attachments"]:
+    # Output the result
+    print(final_report)
 
-        print("\nAttachments:")
-
-        for attachment in attachment_result["attachments"]:
-
-            print("-", attachment)
-
-    else:
-
-        print("No attachments found.")
-
-    if attachment_result["findings"]:
-
-        print("\nFindings:")
-
-        for finding in attachment_result["findings"]:
-
-          print("-", finding)
 if __name__ == "__main__":
     main()

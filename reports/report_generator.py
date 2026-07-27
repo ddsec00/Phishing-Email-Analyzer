@@ -18,9 +18,10 @@ class ReportGenerator:
             f"  > Date: {self.email_info.get('Date', 'Unknown')}\n"
         )
         
-    def _format_section(self, title, data, is_list=False):
-        """Standardized SOC output format for different modules."""
-        lines = [f"[ {title} ]"]
+    def _format_section(self, title, analyzer_name, data, is_list=False):
+        """Standardized SOC output format for different modules, ensuring traceability."""
+        lines = [f"▼ {title}"]
+        lines.append(f"  [Source: {analyzer_name}]")
         has_findings = False
         
         if is_list:
@@ -30,17 +31,17 @@ class ReportGenerator:
                 for item in data:
                     if item.get("findings"):
                         has_findings = True
-                        lines.append(f"  Target: {item.get('url', 'Unknown')}")
+                        lines.append(f"  | Target: {item.get('url', 'Unknown')}")
                         for finding in item.get("findings"):
-                            lines.append(f"    [!] {finding}")
+                            lines.append(f"  |  → {finding}")
         else:
             if data and data.get("findings"):
                 has_findings = True
                 for finding in data.get("findings"):
-                    lines.append(f"  [!] {finding}")
+                    lines.append(f"  | → {finding}")
                     
         if not has_findings:
-            lines.append("  [OK] No anomalies detected.")
+            lines.append("  | ✓ No anomalies detected.")
             
         return "\n".join(lines).strip()
 
@@ -61,21 +62,26 @@ class ReportGenerator:
             "THREAT INDICATORS (IOCs)\n"
             f"{divider}\n\n"
             
-            f"{self._format_section('AUTHENTICATION & HEADERS', self.results.get('headers'))}\n\n"
-            f"{self._format_section('BRAND IMPERSONATION', self.results.get('brand'))}\n\n"
-            f"{self._format_section('DOMAIN ANOMALIES', self.results.get('domains'))}\n\n"
-            f"{self._format_section('HTML PAYLOAD', self.results.get('html'))}\n\n"
-            f"{self._format_section('URL OBFUSCATION', self.results.get('urls'), is_list=True)}\n\n"
-            f"{self._format_section('ATTACHMENT RISKS', self.results.get('attachments'))}\n\n"
+            f"{self._format_section('AUTHENTICATION & HEADERS', 'HeaderAnalyzer', self.results.get('headers'))}\n\n"
+            f"{self._format_section('BRAND IMPERSONATION', 'BrandAnalyzer', self.results.get('brand'))}\n\n"
+            f"{self._format_section('DOMAIN ANOMALIES', 'DomainAnalyzer', self.results.get('domains'))}\n\n"
+            f"{self._format_section('HTML PAYLOAD', 'HTMLAnalyzer', self.results.get('html'))}\n\n"
+            f"{self._format_section('URL OBFUSCATION', 'URLAnalyzer', self.results.get('urls'), is_list=True)}\n\n"
+            f"{self._format_section('ATTACHMENT RISKS', 'AttachmentAnalyzer', self.results.get('attachments'))}\n\n"
             
             f"{divider}\n"
             "THREAT ASSESSMENT SUMMARY\n"
             f"{divider}\n\n"
             
             f"  RISK LEVEL      : {self.risk_summary['risk_level']}\n"
-            f"  THREAT SCORE    : {self.risk_summary['total_score']}\n"
-            f"  AI CONFIDENCE   : {self.risk_summary['confidence']}%\n\n"
-            f"  RECOMMENDATION  : {self.risk_summary['recommendation']}\n"
-            f"{major_divider}\n"
+            f"  THREAT SCORE    : {self.risk_summary['threat_score']} / {self.risk_summary['max_score']}\n"
+            f"  DETECTION CONF. : {self.risk_summary['confidence']}%\n\n"
+            "  RECOMMENDED ACTIONS:\n"
         )
+        
+        for rec in self.risk_summary['recommendations']:
+            report += f"    {rec}\n"
+            
+        report += f"\n{major_divider}\n"
+        
         return report

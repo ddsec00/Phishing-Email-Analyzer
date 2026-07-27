@@ -25,14 +25,15 @@ class RiskEngine:
     def calculate_risk(self):
         """
         Aggregates the scores using calculated weights simulating SOC severity matrices.
+        Returns a capped integer score out of 100.
         """
         # Module Weights - Simulating enterprise security threat modeling
         weights = {
-            "attachments": 1.5,   # Highly dangerous (Malware payloads)
-            "brand": 1.4,         # Core phishing tactic
-            "headers": 1.2,       # Spoofed headers
-            "html": 1.2,          # Concealed payloads
-            "domains": 1.1,       # Evasion
+            "attachments": 3,
+            "brand": 2.5,
+            "headers": 2,
+            "html": 2,
+            "domains": 1.5,
             "urls": 1.0           
         }
 
@@ -46,31 +47,50 @@ class RiskEngine:
         self.total_score += (self.results.get('headers', {}).get("score", 0) * weights["headers"])
         self.total_score += (self.results.get('attachments', {}).get("score", 0) * weights["attachments"])
 
-        self.total_score = round(self.total_score, 1)
+        # Convert to an intuitive 0-100 scale (Assuming a max raw score is around 40-50 in worst cases)
+        scaled_score = int(min(100, self.total_score * 2))
 
         # Confidence Level Assessment
         modules_flagged = sum(1 for res in self.results.values() if self._has_findings(res))
         total_modules = 6
-        self.confidence_level = min(100.0, (modules_flagged / total_modules) * 100 + (self.total_score * 2.5))
-        self.confidence_level = round(self.confidence_level, 1)
+        
+        # We rename to Detection Confidence because we are not using AI models.
+        # It represents how much of the email triggered our static rule modules.
+        confidence_level = int(min(100.0, (modules_flagged / total_modules) * 100))
 
         # Output threat categorization
-        if self.total_score == 0:
+        recommendations = []
+        if scaled_score == 0:
             self.risk_level = "SAFE"
-            self.recommendation = "No suspicious indicators found. Proceed with standard caution."
-        elif self.total_score <= 5:
+            recommendations = ["• Allow email to inbox"]
+        elif scaled_score <= 30:
             self.risk_level = "LOW (Suspicious)"
-            self.recommendation = "Low risk detected. Verify the sender proactively before clicking any links."
-        elif self.total_score <= 15:
+            recommendations = [
+                "• Deliver to Junk/Spam folder",
+                "• Append '[EXTERNAL]' warning to subject",
+                "• Monitor sender reputation"
+            ]
+        elif scaled_score <= 70:
             self.risk_level = "MEDIUM (Elevated Threat)"
-            self.recommendation = "Multiple suspicious indicators found. Highly likely to be a phishing attempt. Quarantine."
+            recommendations = [
+                "• Quarantine the email",
+                "• Prevent user interaction",
+                "• Remove clickable links (Defang)",
+                "• Investigate similar emails"
+            ]
         else:
             self.risk_level = "CRITICAL (Active Threat)"
-            self.recommendation = "Severe threat indicators (Spoofed header/Brand impersonation/Malicious Attachment). Immediate block and purge recommended."
+            recommendations = [
+                "• Block the sender immediately",
+                "• Purge email from all user inboxes",
+                "• Notify the security team (SOC)",
+                "• Search for additional indicators (Threat Hunting)"
+            ]
 
         return {
-            "total_score": self.total_score,
+            "threat_score": scaled_score,
+            "max_score": 100,
             "risk_level": self.risk_level,
-            "recommendation": self.recommendation,
-            "confidence": self.confidence_level
+            "recommendations": recommendations,
+            "confidence": confidence_level
         }

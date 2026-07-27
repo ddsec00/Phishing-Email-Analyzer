@@ -42,15 +42,15 @@ class EmailParser:
                     body = part.get_content()
                     break
 
-                elif (
-                    content_type == "text/html"
-                    and body == ""
-                ):
-                    body = part.get_content()
+                elif content_type == "text/html":
+                    if body == "":
+                        body = part.get_content()
+                    message.html_payload = part.get_content()
 
         else:
-
             body = message.get_content()
+            if message.get_content_type() == "text/html":
+                message.html_payload = body
 
         return {
             "message": message,
@@ -59,4 +59,5 @@ class EmailParser:
             "Subject": message["Subject"],
             "Date": message["Date"],
             "Body": body,
+            "HtmlBody": getattr(message, "html_payload", "")
         }

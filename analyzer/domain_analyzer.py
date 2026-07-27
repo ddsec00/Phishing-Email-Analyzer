@@ -50,3 +50,27 @@ class DomainAnalyzer:
         subdomains = parts[:-2]
         
         return subdomains, registered_domain
+
+    def analyze(self, urls: list) -> dict:
+        """
+        Analyzes a list of URLs for subdomain abuse.
+        """
+        score = 0
+        findings = []
+        
+        for url in urls:
+            hostname = self._extract_hostname(url)
+            subdomains, registered_domain = self._parse_domain(hostname)
+            
+            if len(subdomains) > self.subdomain_threshold:
+                penalty = len(subdomains) - self.subdomain_threshold
+                score += penalty
+                findings.append(f"Domain Anomalies: Excessive subdomains detected in {hostname}")
+                
+            for sub in subdomains:
+                for keyword in self.suspicious_keywords:
+                    if keyword in sub.lower():
+                        score += 2
+                        findings.append(f"Domain Anomalies: Suspicious keyword '{keyword}' in subdomain: {sub}. Likely impersonation attempt.")
+                        
+        return {"score": score, "findings": findings}

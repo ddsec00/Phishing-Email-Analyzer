@@ -1,0 +1,30 @@
+{
+    "suspicious_keywords": [
+        "login",
+        "verify",
+        "verification",
+        "secure",
+        "update",
+        "account",
+        "password",
+        "confirm",
+        "billing",
+        "support",
+        "auth",
+        "microsoft",
+        "apple",
+        "google"
+    ],
+    "suspicious_tlds": [
+        ".xyz",
+        ".top",
+        ".click",
+        ".ru"
+    ],
+    "url_shorteners": [
+        "bit.ly",
+        "tinyurl.com",
+        "t.co",
+        "goo.gl"
+    ]
+}

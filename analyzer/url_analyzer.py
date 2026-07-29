@@ -1,4 +1,6 @@
+import os
 import re
+import json
 from urllib.parse import urlparse
 
 
@@ -8,35 +10,20 @@ class URLAnalyzer:
     suspicious characteristics.
     """
 
-    SUSPICIOUS_KEYWORDS = [
-        "login",
-        "verify",
-        "verification",
-        "secure",
-        "update",
-        "account",
-        "password",
-        "confirm",
-        "billing",
-    ]
-
-    SHORTENERS = [
-        "bit.ly",
-        "tinyurl.com",
-        "t.co",
-        "goo.gl",
-    ]
-
-    SUSPICIOUS_TLDS = [
-        ".xyz",
-        ".top",
-        ".click",
-        ".ru",
-    ]
-
-
     def __init__(self, urls):
         self.urls = urls
+        
+        self.SUSPICIOUS_KEYWORDS = []
+        self.SHORTENERS = []
+        self.SUSPICIOUS_TLDS = []
+        
+        rules_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'rules.json')
+        if os.path.exists(rules_path):
+            with open(rules_path, 'r') as f:
+                rules = json.load(f)
+                self.SUSPICIOUS_KEYWORDS = rules.get('suspicious_keywords', [])
+                self.SHORTENERS = rules.get('url_shorteners', [])
+                self.SUSPICIOUS_TLDS = rules.get('suspicious_tlds', [])
 
 
     def analyze(self):

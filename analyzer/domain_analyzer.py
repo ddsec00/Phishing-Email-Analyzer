@@ -1,3 +1,5 @@
+import os
+import json
 import urllib.parse
 
 class DomainAnalyzer:
@@ -6,12 +8,13 @@ class DomainAnalyzer:
     """
     
     def __init__(self):
-        # We use a 'set' to store keywords. In Python, sets are highly optimized
-        # hash tables offering O(1) average time complexity for lookups.
-        self.suspicious_keywords = {
-            "login", "secure", "account", "update", "verify", 
-            "support", "billing", "auth", "microsoft", "apple", "google"
-        }
+        # We load the suspicious keywords from rules.json
+        rules_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'rules.json')
+        self.suspicious_keywords = set()
+        if os.path.exists(rules_path):
+            with open(rules_path, 'r') as f:
+                rules = json.load(f)
+                self.suspicious_keywords = set(rules.get('suspicious_keywords', []))
         
         # We use a threshold to determine what constitutes "too many" subdomains.
         self.subdomain_threshold = 2

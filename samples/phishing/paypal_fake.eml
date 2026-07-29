@@ -1,0 +1,15 @@
+From: "PayPal Support" <support@paypaI-update.com>
+To: victim@example.com
+Subject: ACTION REQUIRED: Your account has been limited!
+Date: Wed, 29 Jul 2026 12:00:00 +0000
+Content-Type: text/html
+
+<html>
+<body>
+<p>Dear Customer,</p>
+<p>Your PayPal account has been limited due to suspicious activity.</p>
+<p>Please click the link below to verify your identity and restore access:</p>
+<p><a href="http://paypaI-update.com/login?token=1234">Verify Account</a></p>
+<p>Thank you,<br>PayPal Security Team</p>
+</body>
+</html>

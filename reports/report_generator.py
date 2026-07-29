@@ -73,14 +73,17 @@ class ReportGenerator:
             "THREAT ASSESSMENT SUMMARY\n"
             f"{divider}\n\n"
             
-            f"  RISK LEVEL      : {self.risk_summary['risk_level']}\n"
-            f"  THREAT SCORE    : {self.risk_summary['threat_score']} / {self.risk_summary['max_score']}\n"
-            f"  DETECTION CONF. : {self.risk_summary['confidence']}%\n\n"
-            "  RECOMMENDED ACTIONS:\n"
+            f"  RISK LEVEL      : {self.risk_summary.get('level', 'UNKNOWN')}\n"
+            f"  THREAT SCORE    : {self.risk_summary.get('score', 0)} / 100\n\n"
+            "  RISK FACTORS:\n"
         )
         
-        for rec in self.risk_summary['recommendations']:
-            report += f"    {rec}\n"
+        factors = self.risk_summary.get('factors', [])
+        if not factors:
+            report += "    No risk factors identified.\n"
+        else:
+            for factor in factors:
+                report += f"    • {factor}\n"
             
         report += f"\n{major_divider}\n"
         

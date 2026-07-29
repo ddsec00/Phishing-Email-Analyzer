@@ -1,3 +1,7 @@
+import argparse
+import sys
+import os
+
 from analyzer.url_extractor import URLExtractor
 from analyzer.email_parser import EmailParser
 from analyzer.url_analyzer import URLAnalyzer
@@ -9,22 +13,40 @@ from analyzer.html_analyzer import HTMLAnalyzer
 from analyzer.risk_engine import RiskEngine
 from reports.report_generator import ReportGenerator
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="SOC Email Threat Analyzer (v2.0) - A professional phishing analysis framework.",
+        epilog="Example: python main.py sample_email.eml"
+    )
+    parser.add_argument(
+        "file", 
+        help="Path to the .eml file to analyze"
+    )
+    return parser.parse_args()
+
 def main():
-    """
-    Main application workflow.
-    """
+    args = parse_args()
+    
+    if not os.path.exists(args.file):
+        print(f"Error: The file '{args.file}' does not exist.")
+        sys.exit(1)
+
     print("=" * 60)
     print("SOC Email Threat Analyzer (v2.0)")
     print("=" * 60)
-    print("\nIngesting email evidence...\n")
+    print(f"\nIngesting email evidence from '{args.file}'...\n")
 
-    parser = EmailParser("samples/sample_email.eml")
+    parser = EmailParser(args.file)
     email = parser.load_email()
+    if not email:
+        print("Error: Could not parse email.")
+        sys.exit(1)
+        
     print("Evidence extraction complete.\n")
     print("Executing comprehensive threat analysis pipeline...\n")
 
     # 1. Parse URLs
-    extractor = URLExtractor(email["Body"])
+    extractor = URLExtractor(email.get("Body", ""))
     urls = extractor.extract()
 
     # 2. Execute Analyzers
@@ -43,7 +65,7 @@ def main():
     header_analyzer = HeaderAnalyzer(email)
     header_result = header_analyzer.analyze()
 
-    attachment_analyzer = AttachmentAnalyzer(email["message"])
+    attachment_analyzer = AttachmentAnalyzer(email.get("message"))
     attachment_result = attachment_analyzer.analyze()
 
     # 3. Compile all findings for the Risk Engine

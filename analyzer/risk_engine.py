@@ -1,96 +1,77 @@
 class RiskEngine:
     """
-    Evaluates the overall risk of an email by aggregating scores
-    from various analyzers (URLs, headers, attachments).
+    Evaluates the risk of an email using a deterministic scoring model.
+    Each indicator contributes a specific point value.
+    Scores above 50 are considered Suspicious, above 75 are Critical.
     """
 
     def __init__(self, results_dict):
         """
-        Accepts a dictionary of all analyzer results for dynamic, weighted scoring.
+        results_dict: Contains the findings from all analyzers.
         """
         self.results = results_dict
         self.total_score = 0
         self.risk_level = "LOW"
-        self.recommendation = ""
-        self.confidence_level = 0.0
-
-    def _has_findings(self, data):
-        """Helper to determine if a specific subsystem found threats."""
-        if isinstance(data, list):
-            return any(d.get("findings") for d in data)
-        elif isinstance(data, dict):
-            return bool(data.get("findings"))
-        return False
+        self.explanations = []
 
     def calculate_risk(self):
         """
-        Aggregates the scores using calculated weights simulating SOC severity matrices.
-        Returns a capped integer score out of 100.
+        Dynamically calculate risk using fixed weights for specific findings.
+        Returns a score out of 100 with category explanations.
         """
-        # Module Weights - Simulating enterprise security threat modeling
+        # Indicator scoring weights
+        # Note: In a future commit, we will move these to a configuration file.
         weights = {
-            "attachments": 3,
-            "brand": 2.5,
-            "headers": 2,
-            "html": 2,
-            "domains": 1.5,
-            "urls": 1.0           
+            "suspicious_domain": 10,
+            "spf_failure": 15,
+            "executable_attachment": 30,
+            "brand_impersonation": 20,
+            "obfuscated_url": 15,
+            "generic_threat": 5
         }
 
-        # Aggregate weighted scores
-        for url_res in self.results.get('urls', []):
-            self.total_score += (url_res.get("score", 0) * weights["urls"])
+        # Header findings (SPF, DKIM, DMARC)
+        headers = self.results.get('headers', {})
+        if headers.get('score', 0) > 0:
+            self.total_score += weights["spf_failure"]
+            self.explanations.append(f"Header Authentication Failure (+{weights['spf_failure']})")
             
-        self.total_score += (self.results.get('domains', {}).get("score", 0) * weights["domains"])
-        self.total_score += (self.results.get('brand', {}).get("score", 0) * weights["brand"])
-        self.total_score += (self.results.get('html', {}).get("score", 0) * weights["html"])
-        self.total_score += (self.results.get('headers', {}).get("score", 0) * weights["headers"])
-        self.total_score += (self.results.get('attachments', {}).get("score", 0) * weights["attachments"])
+        # Domain findings
+        domains = self.results.get('domains', {})
+        if domains.get('score', 0) > 0:
+            self.total_score += weights["suspicious_domain"]
+            self.explanations.append(f"Suspicious Domain Found (+{weights['suspicious_domain']})")
+            
+        # Brand Impersonation
+        brand = self.results.get('brand', {})
+        if brand.get('score', 0) > 0:
+            self.total_score += weights["brand_impersonation"]
+            self.explanations.append(f"Brand Impersonation Detected (+{weights['brand_impersonation']})")
+            
+        # HTML/URL findings
+        html = self.results.get('html', {})
+        if html.get('score', 0) > 0 or any(u.get('score', 0) > 0 for u in self.results.get('urls', [])):
+            self.total_score += weights["obfuscated_url"]
+            self.explanations.append(f"Suspicious/Obfuscated Link (+{weights['obfuscated_url']})")
 
-        # Convert to an intuitive 0-100 scale (Assuming a max raw score is around 40-50 in worst cases)
-        scaled_score = int(min(100, self.total_score * 2))
+        # Attachment findings
+        attachments = self.results.get('attachments', {})
+        if attachments.get('score', 0) > 0:
+            self.total_score += weights["executable_attachment"]
+            self.explanations.append(f"Dangerous Attachment (+{weights['executable_attachment']})")
 
-        # Confidence Level Assessment
-        modules_flagged = sum(1 for res in self.results.values() if self._has_findings(res))
-        total_modules = 6
-        
-        # We rename to Detection Confidence because we are not using AI models.
-        # It represents how much of the email triggered our static rule modules.
-        confidence_level = int(min(100.0, (modules_flagged / total_modules) * 100))
+        # Cap the score safely at 100
+        final_score = int(min(self.total_score, 100))
 
-        # Output threat categorization
-        recommendations = []
-        if scaled_score == 0:
-            self.risk_level = "SAFE"
-            recommendations = ["• Allow email to inbox"]
-        elif scaled_score <= 30:
-            self.risk_level = "LOW (Suspicious)"
-            recommendations = [
-                "• Deliver to Junk/Spam folder",
-                "• Append '[EXTERNAL]' warning to subject",
-                "• Monitor sender reputation"
-            ]
-        elif scaled_score <= 70:
-            self.risk_level = "MEDIUM (Elevated Threat)"
-            recommendations = [
-                "• Quarantine the email",
-                "• Prevent user interaction",
-                "• Remove clickable links (Defang)",
-                "• Investigate similar emails"
-            ]
+        if final_score < 30:
+            self.risk_level = "LOW (Safe)"
+        elif final_score < 75:
+            self.risk_level = "MEDIUM (Suspicious)"
         else:
-            self.risk_level = "CRITICAL (Active Threat)"
-            recommendations = [
-                "• Block the sender immediately",
-                "• Purge email from all user inboxes",
-                "• Notify the security team (SOC)",
-                "• Search for additional indicators (Threat Hunting)"
-            ]
+            self.risk_level = "CRITICAL (Action Required)"
 
         return {
-            "threat_score": scaled_score,
-            "max_score": 100,
-            "risk_level": self.risk_level,
-            "recommendations": recommendations,
-            "confidence": confidence_level
+            "score": final_score,
+            "level": self.risk_level,
+            "factors": self.explanations
         }
